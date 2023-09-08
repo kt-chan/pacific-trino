@@ -1,0 +1,55 @@
+version: '3'
+services:
+  trino-coordinator:
+    image: trino:397
+    user: "hadoop:hadoop"
+    container_name: trino-coordinator
+    hostname: trino-coordinator
+    restart: always
+    privileged: true
+    env_file:
+      - .env
+    volumes:
+      - ./etc/coordinator/config.properties:${TRINO_HOME}/etc/config.properties
+      - ./etc/coordinator/jvm.config:${TRINO_HOME}/etc/jvm.config
+      - ./etc/coordinator/log.properties:${TRINO_HOME}/etc/log.properties
+      - ./etc/coordinator/node.properties:${TRINO_HOME}/etc/node.properties
+      - ./etc/catalog/:${TRINO_HOME}/etc/catalog/
+    ports:
+      - "30080:${TRINO_SERVER_PORT}"
+    command: ["sh","-c","/opt/apache/bootstrap.sh trino-coordinator"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:${TRINO_SERVER_PORT}/v1/info || exit 1"]
+      interval: 10s
+      timeout: 20s
+      retries: 3
+  trino-worker:
+    image: trino:397
+    user: "hadoop:hadoop"
+    restart: always
+    privileged: true
+    deploy:
+      replicas: 1
+    env_file:
+      - .env
+    volumes:
+      - ./etc/worker/config.properties:${TRINO_HOME}/etc/config.properties
+      - ./etc/worker/jvm.config:${TRINO_HOME}/etc/jvm.config
+      - ./etc/worker/log.properties:${TRINO_HOME}/etc/log.properties
+      - ./etc/worker/node.properties:${TRINO_HOME}/etc/node.properties
+      - ./etc/catalog/:${TRINO_HOME}/etc/catalog/
+    expose:
+      - "${TRINO_SERVER_PORT}"
+    command: ["sh","-c","/opt/apache/bootstrap.sh trino-worker"]
+    healthcheck:
+      test: ["CMD-SHELL", "curl --fail http://localhost:${TRINO_SERVER_PORT}/v1/info || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+
+# 连接外部网络
+networks:
+  default:
+    name: hadoop-network
+
+

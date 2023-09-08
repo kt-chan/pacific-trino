@@ -1,0 +1,75 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose -f docker-compose-resolved.yaml convert
+    kompose.version: 1.30.0 (9d8dcb518)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: trino-coordinator
+  name: trino-coordinator
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: trino-coordinator
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose -f docker-compose-resolved.yaml convert
+        kompose.version: 1.30.0 (9d8dcb518)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/trino-default: "true"
+        io.kompose.service: trino-coordinator
+    spec:
+      containers:
+        - args:
+            - sh
+            - -c
+            - /opt/apache/bootstrap.sh trino-coordinator
+          env:
+            - name: HADOOP_HDFS_DN_PORT
+              value: /opt/apache/trino
+            - name: TRINO_HOME
+              value: /opt/apache/trino
+            - name: TRINO_SERVER_PORT
+              value: "8080"
+          image: trino:397
+##         livenessProbe:
+##           exec:
+##             command:
+##               - curl --fail http://localhost:8080/v1/info || exit 1
+##           failureThreshold: 3
+##           periodSeconds: 10
+##           timeoutSeconds: 20
+          name: trino-coordinator
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+          resources: {}
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - name: trino-cfg-vol
+              mountPath: /opt/apache/trino/etc/jvm.config
+              subPath: config.jvm
+            - name: trino-cfg-vol
+              mountPath: /opt/apache/trino/etc/config.properties
+              subPath: config.properties.coordinator
+            - name: trino-cfg-vol
+              mountPath: /opt/apache/trino/etc/node.properties
+              subPath: node.properties
+            - name: trino-cfg-vol
+              mountPath: /opt/apache/trino/etc/log.properties
+              subPath: log.properties
+      hostname: trino-coordinator
+      restartPolicy: Always
+      volumes:
+        - name: trino-cfg-vol
+          configMap:
+            name: trino-configs
+status: {}

@@ -1,0 +1,69 @@
+---
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: trino-configs
+data:
+  config.jvm: |-
+    -server
+    -Xmx2G
+    -XX:InitialRAMPercentage=80
+    -XX:MaxRAMPercentage=80
+    -XX:G1HeapRegionSize=32M
+    -XX:+ExplicitGCInvokesConcurrent
+    -XX:+ExitOnOutOfMemoryError
+    -XX:+HeapDumpOnOutOfMemoryError
+    -XX:-OmitStackTraceInFastThrow
+    -XX:ReservedCodeCacheSize=512M
+    -XX:PerMethodRecompilationCutoff=10000
+    -XX:PerBytecodeRecompilationCutoff=10000
+    -Djdk.attach.allowAttachSelf=true
+    -Djdk.nio.maxCachedBufferSize=2000000
+    -XX:+UnlockDiagnosticVMOptions
+    -XX:+UseAESCTRIntrinsics
+    -Dfile.encoding=UTF-8
+    # Disable Preventive GC for performance reasons (JDK-8293861)
+    -XX:-G1UsePreventiveGC
+  config.properties.coordinator: |-
+    coordinator=true
+    node-scheduler.include-coordinator=false
+    http-server.http.port=8080
+    query.max-memory=1GB
+    query.max-memory-per-node=1GB
+    discovery-server.enabled=true
+    discovery.uri=http://localhost:8080
+  config.properties.worker: |-
+    coordinator=false
+    http-server.http.port=8080
+    query.max-memory=1GB
+    query.max-memory-per-node=1GB
+    discovery.uri=http://trino-coordinator:8080
+  node.properties: |-
+    node.environment=test
+    spiller-spill-path=/tmp
+    max-spill-per-node=1GB
+    query-max-spill-per-node=256MB
+  log.properties: |-
+    io.trino=INFO
+  hive.properties: |-
+    connector.name=hive-hadoop2
+    hive.metastore.uri=thrift://metastore:9083
+    hive.allow-drop-table=true
+    hive.max-partitions-per-scan=1000000
+    hive.s3.endpoint=10.62.64.200
+    hive.s3.path-style-access=true
+    hive.s3.ssl.enabled=false
+    hive.s3.max-connections=100
+  iceberg.properties: |-
+    connector.name=iceberg
+    hive.metastore.uri=thrift://metastore:9083
+    hive.max-partitions-per-scan=1000000
+    hive.s3.endpoint=10.62.64.200
+    hive.s3.path-style-access=true
+    hive.s3.ssl.enabled=false
+    hive.s3.max-connections=100
+  mysql.properties: |-
+    connector.name=mysql
+    connection-url=jdbc:mysql://metastore-db.default.svc.cluster.local:13306
+    connection-user=root
+    connection-password=mypass

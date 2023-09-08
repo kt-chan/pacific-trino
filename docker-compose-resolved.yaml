@@ -1,0 +1,112 @@
+#name: trino
+services:
+  trino-coordinator:
+    command:
+    - sh
+    - -c
+    - /opt/apache/bootstrap.sh trino-coordinator
+    container_name: trino-coordinator
+    environment:
+      HADOOP_HDFS_DN_PORT: /opt/apache/trino
+      TRINO_HOME: /opt/apache/trino
+      TRINO_SERVER_PORT: "8080"
+    hostname: trino-coordinator
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl --fail http://localhost:8080/v1/info || exit 1
+      timeout: 20s
+      interval: 10s
+      retries: 3
+    image: trino:397
+    networks:
+      hadoop-network: null
+    ports:
+    - mode: ingress
+      target: 8080
+      published: "30080"
+      protocol: tcp
+    privileged: true
+    restart: always
+    user: hadoop:hadoop
+    volumes:
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/coordinator/config.properties
+      target: /opt/apache/trino/etc/config.properties
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/coordinator/jvm.config
+      target: /opt/apache/trino/etc/jvm.config
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/coordinator/log.properties
+      target: /opt/apache/trino/etc/log.properties
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/coordinator/node.properties
+      target: /opt/apache/trino/etc/node.properties
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/catalog
+      target: /opt/apache/trino/etc/catalog
+      bind:
+        create_host_path: true
+  trino-worker:
+    command:
+    - sh
+    - -c
+    - /opt/apache/bootstrap.sh trino-worker
+    deploy:
+      replicas: 3
+    environment:
+      HADOOP_HDFS_DN_PORT: /opt/apache/trino
+      TRINO_HOME: /opt/apache/trino
+      TRINO_SERVER_PORT: "8080"
+    expose:
+    - "8080"
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl --fail http://localhost:8080/v1/info || exit 1
+      timeout: 10s
+      interval: 10s
+      retries: 3
+    image: trino:397
+    networks:
+      hadoop-network: null
+    privileged: true
+    restart: always
+    user: hadoop:hadoop
+    volumes:
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/worker/config.properties
+      target: /opt/apache/trino/etc/config.properties
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/worker/jvm.config
+      target: /opt/apache/trino/etc/jvm.config
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/worker/log.properties
+      target: /opt/apache/trino/etc/log.properties
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/worker/node.properties
+      target: /opt/apache/trino/etc/node.properties
+      bind:
+        create_host_path: true
+    - type: bind
+      source: /home/ubuntu/projects/trino/etc/catalog
+      target: /opt/apache/trino/etc/catalog
+      bind:
+        create_host_path: true
+networks:
+  hadoop-network:
+    name: trino_hadoop-network

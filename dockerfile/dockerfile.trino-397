@@ -1,0 +1,48 @@
+FROM ubuntu:22.04
+
+RUN rm -f /etc/localtime && ln -sv /usr/share/zoneinfo/Asia/Shanghai /etc/localtime && echo "Asia/Shanghai" > /etc/timezone
+
+RUN export LANG=zh_CN.UTF-8
+
+# 创建用户和用户组，跟yaml编排里的user: 10000:10000
+RUN groupadd --system --gid=10000 hadoop && useradd --system --home-dir /home/hadoop --uid=10000 --gid=hadoop hadoop -m
+
+RUN apt-get update
+RUN apt-get upgrade -y
+
+# 安装sudo
+RUN apt-get install -y sudo ; chmod 640 /etc/sudoers
+
+# 给hadoop添加sudo权限
+RUN echo "hadoop ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers
+
+RUN apt-get install -y net-tools telnetd wget netcat zip
+
+RUN mkdir /opt/apache/
+
+# 添加配置 JDK
+ADD ./jars/zulu17.44.15-ca-jdk17.0.8-linux_x64.zip /opt/apache/
+RUN unzip /opt/apache/zulu17.44.15-ca-jdk17.0.8-linux_x64.zip -d /opt/apache/zulu17.44.15-ca-jdk17.0.8-linux_x64
+# RUN rm -rf /opt/apache/zulu17.44.15-ca-jdk17.0.8-linux_x64.zip
+ENV JAVA_HOME /opt/apache/zulu17.44.15-ca-jdk17.0.8-linux_x64.zip
+ENV PATH $JAVA_HOME/bin:$PATH
+
+# 添加配置 trino server
+ENV TRINO_VERSION 397
+ADD ./jars/trino-server-${TRINO_VERSION}.tar.gz /opt/apache/
+ENV TRINO_HOME /opt/apache/trino
+RUN ln -s /opt/apache/trino-server-${TRINO_VERSION} $TRINO_HOME
+
+# 创建配置目录和数据源catalog目录
+RUN mkdir -p ${TRINO_HOME}/etc/catalog
+
+# 添加配置 trino cli
+COPY ./jars/trino-cli-397-executable.jar $TRINO_HOME/bin/trino-cli
+
+# copy bootstrap.sh
+COPY ./scripts/trino-bootstrap.sh /opt/apache/bootstrap.sh
+RUN chmod +x /opt/apache/bootstrap.sh ${TRINO_HOME}/bin/trino-cli
+
+RUN chown -R hadoop:hadoop /opt/apache
+
+WORKDIR $TRINO_HOME
