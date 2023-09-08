@@ -1,12 +1,19 @@
 # pacific-trino
 
 Preparation: 
+
 #1 download required tars and jars , put it under ./jars
+
 	. zulu17.44.15-ca-jdk17.0.8-linux_x64.zip
+ 
 	. trino-server-397.tar.gz
+ 
 	. trino-cli-397-executable.jar
+ 
 #2 minikube or other k8s cluster installed
+
 #3 docker installed
+
 
 
 Setup Instruciton
